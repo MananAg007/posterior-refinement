@@ -1,0 +1,25 @@
+# image
+image/pretrained_maskgit
+image/results
+image/train
+image/val
+image/VIRTUAL_imagenet256_labeled.npz
+image/fid_stats_imagenet256_guided_diffusion.npz
+image/dataset
+
+text/configs/data/openwebtext-split.yaml
+text/otw_1sample_data/
+text/text8_1sample_data/
+# text
+text/checkpoints
+text/outputs
+*.whl
+*__pycache__*
+*wandb*
+*.hydra
+*.ckpt
+*.zip
+collected_samples*
+sweep_results_*
+outputs
+!configs/data/

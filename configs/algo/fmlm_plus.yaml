@@ -1,0 +1,30 @@
+name: fmlm_plus
+backbone: dit
+parameterization: mean
+time_conditioning: True
+T: 0
+subs_masking: False
+causal_attention: False
+ignore_bos: False
+t_max: 1.0
+t_min: 0.0
+double_temb: True
+learnable_loss_weighting: False
+skip_time_reparam: True
+
+sample_clean: uniform
+
+time_sampling: uniform_diff
+normalize_loss_by_active_tokens: True
+
+p_distill: 0.0
+distill_teacher_ckpt_path: null
+init_teacher_ckpt_path: null
+init_teacher_kind: mdlm
+
+add_boundary: False
+diagonal_fraction: 0.5
+boundary_prob: 1000000
+distillation_method: PSD
+
+diag_teacher_ckpt_path: null

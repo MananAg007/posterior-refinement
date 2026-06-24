@@ -1,0 +1,13 @@
+train: sudoku
+valid: sudoku
+tokenizer_name_or_path: sudoku
+cache_dir: data
+wrap: False
+streaming: False
+insert_train_eos: False
+insert_valid_eos: False
+difficulty: easy   # easy (40 clues) / medium (35 clues) / hard (30 clues)
+num_train: 48000
+num_valid: 2000
+data_seed: 42
+sudoku_num_workers: 8

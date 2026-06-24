@@ -1,0 +1,15 @@
+train: tinygsm
+valid: tinygsm
+tokenizer_name_or_path: HuggingFaceTB/SmolLM-135M
+cache_dir: ./cache/tinygsm
+wrap: False
+streaming: False
+insert_train_eos: True
+insert_valid_eos: True
+
+separator: '\n'
+train_on_prompt: False
+train_on_pad: True
+val_ratio: 0.01   # ~100k examples held out
+val_seed: 42
+filter_too_long: True

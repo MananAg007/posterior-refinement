@@ -1,0 +1,12 @@
+name: mdlm
+backbone: dit
+parameterization: subs
+time_conditioning: False
+T: 0
+subs_masking: False
+causal_attention: False
+ignore_bos: False
+diffusion_type: absorbing
+loss_type: elbo
+
+post_process_mode: log_probs
