@@ -122,6 +122,10 @@ The TinyGSM experiments include additional checkpoints for the initialization an
 }
 ```
 
+## Contact
+
+If you have any questions about the paper, code, or potential collaborations, please feel free to reach out to us at `{mananaga, sheels}@cs.cmu.edu`.
+
 ---
 
 ## Acknowledgements
