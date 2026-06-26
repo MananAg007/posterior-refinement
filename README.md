@@ -112,8 +112,8 @@ The TinyGSM experiments include additional checkpoints for the initialization an
 ## BibTeX
 
 ```bibtex
-@article{agarwal2026posterior,
-    title={Posterior Refinement: Any-Order Language Generation via Flow Maps},
+@article{agarwal2026posteriorrefinement,
+    title={Posterior Refinement: Fast Language Generation via Any-Order Flow Maps},
     author={Manan Agarwal and Sheel Shah and Chanhyuk Lee
             and Jaehoon Yoo and Jerry Huang and Seunghoon Hong
             and Aditi Raghunathan and Jinwoo Kim and Nicholas M. Boffi},
