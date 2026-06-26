@@ -12,25 +12,27 @@
 
 <div align="center">
 
-[![arXiv](https://img.shields.io/badge/arXiv-grey?style=flat&logo=arxiv)](https://github.com/MananAg007/posterior-refinement)
+[![arXiv](https://img.shields.io/badge/arXiv-grey?style=flat&logo=arxiv)](https://arxiv.org/abs/2606.24773)
 [![Project Page](https://img.shields.io/badge/Project_Page-grey?style=flat&logo=github)](https://posterior-refinement.github.io/)
-[![Google Drive](https://img.shields.io/badge/Google_Drive-4285F4?style=flat&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1SfcZhOx0BEL1NRIDH8EM000D9mPv6-Dy?usp=sharing)
+[![Checkpoints](https://img.shields.io/badge/Google_Drive-4285F4?style=flat&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1SfcZhOx0BEL1NRIDH8EM000D9mPv6-Dy?usp=sharing)
 
 </div>
 
-## TL;DR
+## Official Code Repository
 
 <p align="center">
-  <img src="figures/overview.png" width="100%">
+  <img src="figures/overview.png" width="80%" margin="0 auto" display="block">
 </p>
 
-We introduce **Posterior Refinement**, an inference-time decoding strategy built on **Flow Map Language Models (FMLM+)** that lets the model **score tokens _a posteriori_** — after generating a complete draft — and re-noise and regenerate only the low-confidence ones. This self-correction loop matches or surpasses the strongest baselines with up to **32× fewer function evaluations**.
+**Posterior Refinement with FMLM+.** Posterior Refinement lets the model judge the fit of each token after the fact and fix its own mistakes in parallel. The model generates all tokens in parallel and scores each token's posterior confidence given the entire draft. It commits the high-confidence tokens, re-noises the rest, and repeats.
 
-## Overview
+## Abstract
 
 Non-autoregressive generation promises **iterative refinement** — recursively critiquing, erasing, and regenerating arbitrary subsets of tokens — but existing models fail to realize it. **Masked Diffusion Models (MDMs)** suffer from factorization error, so sample quality collapses when many tokens are generated simultaneously. **Flow Map Language Models (FMLMs)** sidestep this bottleneck through joint sequence transport, achieving excellent few-step generation, but sacrifice the inference-time flexibility of MDMs.
 
 We introduce **FMLM+**, a framework that bridges this gap by equipping FMLM with **masking-style noise schedules**. While generating the full sequence in a single step, FMLM+ simultaneously scores the global consistency of each token **_a posteriori_**. We leverage this to introduce **Posterior Refinement**, an inference-time strategy that lets the model adaptively self-correct its outputs — matching the performance of discrete baselines with up to **32× fewer NFEs**. Across diverse benchmarks, FMLM+ with Posterior Refinement improves the speed–quality tradeoff over both the MDM and FMLM families, providing a scalable foundation for high-fidelity language modeling.
+
+Please refer to our [paper](https://arxiv.org/abs/2606.24773) for more details on method and results.
 
 ## How to Run
 
@@ -115,7 +117,7 @@ The TinyGSM experiments include additional checkpoints for the initialization an
     author={Manan Agarwal and Sheel Shah and Chanhyuk Lee
             and Jaehoon Yoo and Jerry Huang and Seunghoon Hong
             and Aditi Raghunathan and Jinwoo Kim and Nicholas M. Boffi},
-    journal={arXiv preprint},
+    journal={arXiv preprint arXiv:2606.24773},
     year={2026},
 }
 ```
@@ -124,4 +126,4 @@ The TinyGSM experiments include additional checkpoints for the initialization an
 
 ## Acknowledgements
 
-This codebase builds upon [FMLM](https://one-step-lm.github.io/), [Duo](https://github.com/s-sahoo/duo), and [ReDi](https://github.com/Ugness/ReDi).
+This codebase builds upon [FMLM](https://github.com/david3684/flm), [Duo](https://github.com/s-sahoo/duo), and [ReDi](https://github.com/Ugness/ReDi). We would like to thank [Modal Labs](https://modal.com/) for their generous compute grants, which proved invaluable in supporting this work.
