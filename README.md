@@ -12,8 +12,8 @@
 
 <div align="center">
 
-[![arXiv](https://img.shields.io/badge/arXiv-grey?style=flat&logo=arxiv)](https://arxiv.org/abs/2606.24773)
-[![Project Page](https://img.shields.io/badge/Project_Page-grey?style=flat&logo=github)](https://posterior-refinement.github.io/)
+[![arXiv](https://img.shields.io/badge/arXiv-B31B1B?style=flat&logo=arxiv)](https://arxiv.org/abs/2606.24773)
+[![Project Page](https://img.shields.io/badge/🌐_Project_Page-blue?style=flat)](https://posterior-refinement.github.io/)
 [![Checkpoints](https://img.shields.io/badge/Google_Drive-4285F4?style=flat&logo=googledrive&logoColor=white)](https://drive.google.com/drive/folders/1SfcZhOx0BEL1NRIDH8EM000D9mPv6-Dy?usp=sharing)
 
 </div>
