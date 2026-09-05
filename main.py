@@ -161,7 +161,10 @@ def _generate_samples(diffusion_model, config, logger,
                     tensor_samples = torch.stack(
                         [s if isinstance(s, torch.Tensor) else torch.tensor(s)
                          for s in batch_samples])
-                model.metrics.record_sudoku_validity(tensor_samples)
+                cells = (model._sudoku_uncond_cells(tensor_samples)
+                         if getattr(model, 'is_sudoku_uncond', False)
+                         else tensor_samples)
+                model.metrics.record_sudoku_validity(cells)
             text_samples = model.tokenizer.batch_decode(batch_samples)
             if (config.eval.compute_generative_perplexity
                     and not is_sudoku):

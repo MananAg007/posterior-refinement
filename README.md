@@ -61,6 +61,7 @@ Update `data.cache_dir` in each script to point to your dataset location. If the
 | OpenWebText   | [scripts/train/owt.sh](scripts/train/owt.sh)          |
 | TinyGSM       | [scripts/train/tinygsm.sh](scripts/train/tinygsm.sh)  |
 | Sudoku        | [scripts/train/sudoku.sh](scripts/train/sudoku.sh)    |
+| Sudoku (uncond.) | [scripts/train/uncond_sudoku.sh](scripts/train/uncond_sudoku.sh) |
 
 #### TinyGSM Variants
 
@@ -82,6 +83,7 @@ Set `eval.checkpoint_path` in each script to your trained checkpoint before runn
 | OpenWebText   | [scripts/eval/owt.sh](scripts/eval/owt.sh)          |
 | TinyGSM       | [scripts/eval/tinygsm.sh](scripts/eval/tinygsm.sh)  |
 | Sudoku        | [scripts/eval/sudoku.sh](scripts/eval/sudoku.sh)    |
+| Sudoku (uncond.) | [scripts/eval/uncond_sudoku.sh](scripts/eval/uncond_sudoku.sh) |
 
 ## Checkpoints
 

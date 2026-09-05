@@ -3,6 +3,8 @@ import itertools
 import json
 import math
 import os
+import time
+
 import numpy as np
 
 import re
@@ -750,6 +752,139 @@ class SflmSudokuTokenizer:
         return [self.decode(seq) for seq in sequences]
 
 
+class UncondSudokuTokenizer:
+    """Tokenizer for the headless unconditional sudoku task.
+
+    The data distribution is solved 9x9 grids flattened row-major to exactly
+    81 tokens, with no special tokens at all: the whole sequence is data, so
+    there is no BOS to condition on and no row separators.
+
+      input_ids:      grid(81)              (digits 1-9 on the dense ids 0-8)
+      attention_mask: [1 .. grid .. 1]      (all 81 supervised)
+
+    Deliberately distinct from `SflmSudokuTokenizer` (12 tokens, 90 positions,
+    BOS + row separators), which the conditional task uses. FMLM+ is
+    continuous-state and needs no BOS anchor, and a 9-symbol vocabulary keeps
+    the alpha<->gamma reparameterization (`utils.build_luts`) free of dead
+    mass.
+    """
+
+    def __init__(self):
+        self.vocab_size = 9
+        self.bos_token_id = None
+        self.eos_token_id = None
+        self.pad_token_id = None
+        self.mask_token = None
+        self.mask_token_id = None
+        self.seq_len = 81
+
+    def __len__(self):
+        return self.vocab_size
+
+    def decode(self, token_ids):
+        return ' '.join(str(int(t) + 1) for t in token_ids)
+
+    def batch_decode(self, sequences, **kwargs):
+        return [self.decode(seq) for seq in sequences]
+
+
+def _uncond_sudoku_npy_path(data_cfg):
+    """On-disk cache for the solved grids, keyed on (num_puzzles, seed)."""
+    return os.path.join(
+        data_cfg.cache_dir,
+        f'uncond_sudoku_n{int(data_cfg.num_puzzles)}'
+        f'_seed{int(data_cfg.data_seed)}.npy')
+
+
+def _ensure_uncond_sudoku_npy(data_cfg, timeout=14400):
+    """Generate the solved-grid array on first use and return its path.
+
+    Every DDP rank runs this, so only global rank 0 generates and the rest
+    wait for the finished file rather than duplicating the work.
+    """
+    import sudoku_generator
+
+    path = _uncond_sudoku_npy_path(data_cfg)
+    if utils.fsspec_exists(path):
+        return path
+
+    is_rank_zero = (int(os.environ.get('NODE_RANK', 0)) == 0
+                    and int(os.environ.get('LOCAL_RANK', 0)) == 0)
+    if not is_rank_zero:
+        LOGGER.info(f'Waiting for rank 0 to generate {path}.')
+        deadline = time.time() + timeout
+        while not utils.fsspec_exists(path):
+            if time.time() > deadline:
+                raise TimeoutError(
+                    f'Timed out waiting for {path}. Check rank 0 for the '
+                    f'underlying generation error.')
+            time.sleep(10)
+        return path
+
+    LOGGER.info(f'Generating {int(data_cfg.num_puzzles)} solved sudoku '
+                f'grids -> {path}.')
+    grids = sudoku_generator.generate_solved_grids(
+        num_puzzles=int(data_cfg.num_puzzles),
+        seed=int(data_cfg.data_seed),
+        num_workers=int(data_cfg.sudoku_num_workers))
+    os.makedirs(data_cfg.cache_dir, exist_ok=True)
+    # Write then rename, so the waiting ranks never mmap a partial file.
+    tmp_path = f'{path}.tmp{os.getpid()}.npy'
+    np.save(tmp_path, grids)
+    os.replace(tmp_path, path)
+    return path
+
+
+class UncondSudokuDataset(torch.utils.data.Dataset):
+    """Memory-mapped view over the solved-grid array.
+
+    The array is (N, 81) int32 of digits 1-9, row-major. At millions of grids
+    it is far too large to round-trip through an HF `DatasetDict`, so it is
+    mmapped and indexed directly. The last
+    `num_valid` rows are held out for validation; the rows are i.i.d., so the
+    positional split is already a random one and stays reproducible without
+    storing an index.
+    """
+
+    def __init__(self, data_cfg, split):
+        self._npy_path = _ensure_uncond_sudoku_npy(data_cfg)
+        self.grids = None
+        self._open()
+        total = self.grids.shape[0]
+        num_valid = int(data_cfg.num_valid)
+        assert self.grids.shape[1] == 81, (
+            f'expected (N, 81) grids, got {self.grids.shape}')
+        assert 0 <= num_valid < total, (
+            f'num_valid={num_valid} out of range for N={total}')
+        if split == 'train':
+            self.offset, self.length = 0, total - num_valid
+        else:
+            self.offset, self.length = total - num_valid, num_valid
+
+    def _open(self):
+        if self.grids is None:
+            self.grids = np.load(self._npy_path, mmap_mode='r')
+
+    def __getstate__(self):
+        # A live memmap pickles as a full in-memory copy (once per dataloader
+        # worker), so drop the mapping and let each worker re-open it.
+        state = self.__dict__.copy()
+        state['grids'] = None
+        return state
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, i):
+        self._open()
+        # -1 shifts the stored digits 1-9 onto the dense ids 0-8.
+        grid = np.asarray(self.grids[self.offset + i], dtype=np.int64) - 1
+        return {
+            'input_ids': torch.from_numpy(grid),
+            'attention_mask': torch.ones(81, dtype=torch.long),
+        }
+
+
 def _sflm_get_sudoku_dataset(config, tokenizer):
     """Generate or load the s-flm sudoku dataset (HF DatasetDict).
 
@@ -1067,6 +1202,10 @@ def get_dataset(dataset_name,
         dataset = _sflm_get_sudoku_dataset(config, tokenizer)
         split = 'train' if mode == 'train' else 'validation'
         return dataset[split].with_format('torch')
+    elif dataset_name == 'sudoku-uncond':
+        return UncondSudokuDataset(
+            config.data,
+            split='train' if mode == 'train' else 'validation')
     else:
         dataset = datasets.load_dataset(
             dataset_name,
@@ -1241,6 +1380,8 @@ def get_tokenizer(config):
         tokenizer = Alpha8Tokenizer()
     elif config.data.tokenizer_name_or_path == 'sudoku':
         return SflmSudokuTokenizer()
+    elif config.data.tokenizer_name_or_path == 'sudoku-uncond':
+        return UncondSudokuTokenizer()
     else:
         tokenizer = transformers.AutoTokenizer.from_pretrained(
             config.data.tokenizer_name_or_path)

@@ -134,10 +134,14 @@ class TrainerBase(L.LightningModule):
 
         self.is_sflm_sudoku = getattr(self.config.data,
                                       'tokenizer_name_or_path', '') == 'sudoku'
+        # Headless unconditional sudoku (grid(81), ids 0-8): scored on the
+        # validity of generated grids rather than a prompt-fill accuracy.
+        self.is_sudoku_uncond = getattr(
+            self.config.data, 'tokenizer_name_or_path', '') == 'sudoku-uncond'
         self.metrics = metrics.Metrics(
             gen_ppl_eval_model_name_or_path=self.config.eval.gen_ppl_eval_model_name_or_path,
             eval_ppl_batch_size=self.config.eval.perplexity_batch_size,
-            is_sudoku=False)
+            is_sudoku=self.is_sudoku_uncond)
         # Lazily populated on first sflm_sudoku validation.
         self._sflm_sudoku_eval_cache = None
         # Lazily populated on first validation that needs the real GSM8K
@@ -752,6 +756,29 @@ class TrainerBase(L.LightningModule):
             return None
         return self._run_sflm_sudoku_pass(test_data, N, num_steps)
 
+    def _sudoku_uncond_cells(self, samples):
+        """Shift generated ids 0-8 back to the digits 1-9 SudokuValidity
+        scores. The headless sequence is already exactly the 81 cells."""
+        return samples + 1
+
+    def _evaluate_sudoku_uncond(self, num_steps):
+        """Unconditional sudoku eval: generate grids and log their validity."""
+        for _ in range(self.config.sampling.num_sample_batches):
+            samples = self.generate_samples(
+                num_samples=self.config.loader.eval_batch_size,
+                num_steps=num_steps)
+            self.metrics.record_entropy(samples)
+            self.metrics.record_sudoku_validity(
+                self._sudoku_uncond_cells(samples))
+        validity = self.metrics.sudoku_validity.compute()
+        self.log(f'val/sudoku_validity_T{num_steps}', validity,
+                 on_epoch=True, on_step=False, sync_dist=True)
+        if self.trainer.global_rank == 0:
+            print(f"[sudoku_uncond step={self.global_step} T{num_steps}] "
+                  f"validity={float(validity):.2f}%")
+            print(f"  sample: {self.tokenizer.decode(samples[0].tolist())}")
+        return validity
+
     def on_validation_epoch_end(self):
 
         if not self.metrics.is_sudoku:
@@ -782,7 +809,9 @@ class TrainerBase(L.LightningModule):
             if hasattr(self.metrics, 'sudoku_validity'):
                 self.metrics.sudoku_validity.reset()
 
-            if self.is_sflm_sudoku:
+            if self.is_sudoku_uncond:
+                self._evaluate_sudoku_uncond(num_steps)
+            elif self.is_sflm_sudoku:
                 self._evaluate_sflm_sudoku(num_steps)
             else:
                 current_text_samples = []

@@ -1,0 +1,22 @@
+# Unconditional sudoku: the model generates solved 9x9 grids from noise, with
+# no puzzle prompt. Each example is the grid flattened row-major to exactly 81
+# tokens, with no special tokens at all:
+#
+#   input_ids:      grid(81)          (digits 1-9 on the dense ids 0-8)
+#   attention_mask: [1 .. grid .. 1]  (all 81 supervised)
+#
+# Set model.length=81 on the command line (see scripts/train/uncond_sudoku.sh).
+# The grids are generated into cache_dir on first use (rank 0 only) and
+# mmapped from there; the last num_valid rows are held out for validation.
+train: sudoku-uncond
+valid: sudoku-uncond
+tokenizer_name_or_path: sudoku-uncond
+cache_dir: data
+wrap: False
+streaming: False
+insert_train_eos: False
+insert_valid_eos: False
+num_puzzles: 10000000
+num_valid: 10000
+data_seed: 42
+sudoku_num_workers: 8

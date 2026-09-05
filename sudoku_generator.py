@@ -14,6 +14,7 @@ We extended the original code with:
 import random
 from multiprocessing import Pool
 
+import numpy as np
 from tqdm import tqdm
 
 
@@ -310,3 +311,51 @@ def generate_uncond_sudoku_dataset(num_train, num_valid, difficulty,
   train = _tokenize_solutions(all_solutions[:num_train], tokenizer)
   valid = _tokenize_solutions(all_solutions[num_train:], tokenizer)
   return {'train': train, 'validation': valid}
+
+
+def _generate_solved_batch(args):
+  """Generate one batch of solved grids as an (n, 81) int32 array.
+
+  Pool workers inherit the parent's RNG state, so each batch reseeds from its
+  own index -- otherwise every worker would emit the same stream of grids.
+  """
+  batch_idx, n, seed = args
+  rng = random.Random(seed * 1_000_003 + batch_idx)
+  out = np.empty((n, 81), dtype=np.int32)
+  for k in range(n):
+    grid = [[0] * 9 for _ in range(9)]
+    _fill_grid(grid, rng)
+    out[k] = [cell for row in grid for cell in row]
+  return out
+
+
+def generate_solved_grids(num_puzzles, seed=0, num_workers=1,
+                          batch_size=1000):
+  """Generate solved grids as an (num_puzzles, 81) int32 array of digits 1-9.
+
+  Rows are the row-major flattening of the grid (index i*9 + j). Unlike
+  :func:`generate_sudoku_dataset` this samples i.i.d. without deduplication:
+  the number of distinct solved grids (~6.7e21) makes collisions negligible,
+  and the `seen` set does not fit in memory at the scale this dataset is used
+  at (millions of grids).
+  """
+  num_batches = (num_puzzles + batch_size - 1) // batch_size
+  sizes = [batch_size] * num_batches
+  if num_puzzles % batch_size != 0:
+    sizes[-1] = num_puzzles % batch_size
+  tasks = [(i, n, seed) for i, n in enumerate(sizes)]
+
+  batches = []
+  pbar = tqdm(total=num_batches, desc='Generating sudokus')
+  if num_workers > 1:
+    with Pool(processes=num_workers) as pool:
+      for batch in pool.imap(_generate_solved_batch, tasks):
+        batches.append(batch)
+        pbar.update(1)
+  else:
+    for task in tasks:
+      batches.append(_generate_solved_batch(task))
+      pbar.update(1)
+  pbar.close()
+  return np.vstack(batches)
+
