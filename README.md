@@ -18,6 +18,9 @@
 
 </div>
 
+## News
+- **[2026-09]** Our paper is accepted in CoLM NonAR-LM Workshop as a Spotlight presentation
+
 ## Official Code Repository
 
 <p align="center">
