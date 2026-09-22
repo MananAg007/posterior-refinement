@@ -19,7 +19,7 @@
 </div>
 
 ## News
-- **[2026-09]** Our paper is accepted in CoLM NonAR-LM Workshop as a Spotlight presentation
+- **[2026-09]** Our paper is accepted in COLM 2026 [NonAR-LM Workshop](https://pengzhangzhi.github.io/NonAR-LM/) as a Spotlight presentation
 
 ## Official Code Repository
 
